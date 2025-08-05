@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TikTok Downloader</title>
+  <link rel="stylesheet" href="styles/main.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>Descargar TikToks sin marca de agua</h1>
+    <input type="text" id="url" placeholder="Pega el link del video" />
+    <button onclick="descargar()">Descargar</button>
+    <div id="resultado"></div>
+  </div>
+
+<script>
+async function descargar() {
+  const url = document.getElementById('url').value;
+  const resultado = document.getElementById('resultado');
+  resultado.innerText = 'Procesando...';
+
+  const respuesta = await fetch('/api/descargar', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url })
+  });
+
+  const data = await respuesta.json();
+
+  if (data.videoUrl) {
+    // Descargar el video como blob y crear enlace local
+    try {
+      const videoResponse = await fetch(data.videoUrl);
+      const blob = await videoResponse.blob();
+      const blobUrl = URL.createObjectURL(blob);
+
+      resultado.innerHTML = `
+        <a href="${blobUrl}" download="TiktokSMA.mp4" id="descargaLink">
+          Video listo, descarga aquí
+        </a>
+      `;
+
+      // Opcional: revocar el blobUrl después de un tiempo para liberar memoria
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+
+    } catch (err) {
+      resultado.innerText = 'Error descargando el video.';
+      console.error(err);
+    }
+  } else {
+    resultado.innerText = 'Error al descargar el video.';
+  }
+}
+</script>
+</body>
+</html>
