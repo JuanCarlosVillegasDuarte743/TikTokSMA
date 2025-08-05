@@ -35,12 +35,17 @@ app.post('/api/descargar', async (req, res) => {
       return res.status(400).json({ error: data.msg || 'Error al procesar el video' });
     }
 
+    console.log('Datos recibidos de la API:', data.data);  // Aquí el log
+
     const videoSinMarca = data.data.play || data.data.play_hd;
     if (!videoSinMarca) {
       return res.status(404).json({ error: 'No se encontró video sin marca de agua' });
     }
 
-    return res.json({ videoUrl: videoSinMarca });
+    return res.json({
+      videoUrl: videoSinMarca,
+      cover: data.data.cover  // Quizá aquí cambiarás después
+    });
 
   } catch (err) {
     console.error(err.message || err);

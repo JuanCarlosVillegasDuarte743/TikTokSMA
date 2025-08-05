@@ -5,53 +5,94 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>TikTok Downloader</title>
   <link rel="stylesheet" href="styles/main.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    .video-thumb {
+      max-width: 100%;
+      height: auto;
+      display: block;
+      margin: 10px 0;
+      border-radius: 8px;
+      box-shadow: 0 0 8px rgba(0,0,0,0.2);
+      cursor: pointer;
+    }
+    #videoReproductor {
+      max-width: 100%;
+      border-radius: 8px;
+      display: none;
+      margin: 10px 0;
+    }
+  </style>
 </head>
 <body>
   <div class="container">
-    <h1>Descargar TikToks sin marca de agua</h1>
-    <input type="text" id="url" placeholder="Pega el link del video" />
-    <button onclick="descargar()">Descargar</button>
+    <h1>Descarga videos de TikTok sin marca de agua</h1>
+    <input type="text" id="url" placeholder="Pega el enlace del video aquí" />
+    <button onclick="descargar()">Analizar Link</button>
     <div id="resultado"></div>
   </div>
 
 <script>
-async function descargar() {
-  const url = document.getElementById('url').value;
-  const resultado = document.getElementById('resultado');
-  resultado.innerText = 'Procesando...';
+  async function descargar() {
+    const url = document.getElementById('url').value.trim();
+    const resultado = document.getElementById('resultado');
 
-  const respuesta = await fetch('/api/descargar', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ url })
-  });
-
-  const data = await respuesta.json();
-
-  if (data.videoUrl) {
-    // Descargar el video como blob y crear enlace local
-    try {
-      const videoResponse = await fetch(data.videoUrl);
-      const blob = await videoResponse.blob();
-      const blobUrl = URL.createObjectURL(blob);
-
-      resultado.innerHTML = `
-        <a href="${blobUrl}" download="TiktokSMA.mp4" id="descargaLink">
-          Video listo, descarga aquí
-        </a>
-      `;
-
-      // Opcional: revocar el blobUrl después de un tiempo para liberar memoria
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
-
-    } catch (err) {
-      resultado.innerText = 'Error descargando el video.';
-      console.error(err);
+    if (!url) {
+      resultado.innerHTML = '<p class="error-msg">⚠️ Por favor, pega un enlace válido.</p>';
+      return;
     }
-  } else {
-    resultado.innerText = 'Error al descargar el video.';
+
+    resultado.innerHTML = `<div class="spinner"></div><p>Procesando...</p>`;
+
+    try {
+      const respuesta = await fetch('/api/descargar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url })
+      });
+
+      const data = await respuesta.json();
+
+      console.log('Miniatura:', data.cover);
+
+      if (data.videoUrl) {
+        const videoResponse = await fetch(data.videoUrl);
+        const blob = await videoResponse.blob();
+        const blobUrl = URL.createObjectURL(blob);
+
+        resultado.innerHTML = `
+          <p class="success-msg"> Video listo!</p>
+          ${data.cover ? `<img src="${data.cover}" alt="Miniatura del video" class="video-thumb" id="miniatura" />` : '<p>No se encontró miniatura</p>'}
+          <video id="videoReproductor" src="${blobUrl}" controls></video>
+          <a href="${blobUrl}" download="TikTokSMA.mp4">Descargar video</a>
+        `;
+
+        // Añadimos el evento click para reproducir el video al hacer click en la miniatura
+        const miniatura = document.getElementById('miniatura');
+        const videoReproductor = document.getElementById('videoReproductor');
+
+        if (miniatura && videoReproductor) {
+          miniatura.style.cursor = 'pointer';
+          videoReproductor.style.display = 'none';
+
+          miniatura.addEventListener('click', () => {
+            miniatura.style.display = 'none';
+            videoReproductor.style.display = 'block';
+            videoReproductor.play();
+          });
+        }
+
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+      } else {
+        resultado.innerHTML = `<p class="error-msg">❌ No se pudo procesar el enlace.</p>`;
+        console.log(data);
+      }
+    } catch (err) {
+      console.error(err);
+      resultado.innerHTML = `<p class="error-msg">🚫 Error al descargar el video.</p>`;
+    }
   }
-}
 </script>
 </body>
 </html>
